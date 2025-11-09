@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadratic Factoring Practice (Cross Method)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Use the Inter font */
+        body {
+            font-family: "Inter", sans-serif;
+        }
+        /* Style for the selected button */
+        .btn-selected {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            border-color: #4f46e5; /* indigo-600 */
+        }
+        .btn-selected:hover {
+            background-color: #4338ca; /* indigo-700 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container max-w-6xl mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Factoring Practice</h1>
+            <p class="text-xl text-gray-600">Using the Cross Method</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-xl p-6 md:p-8">
+            <div class="flex justify-center mb-6">
+                <button id="new-problem-btn" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow-md">
+                    New Problem
+                </button>
+            </div>
+
+            <!-- Problem Display -->
+            <h2 id="problem-display" class="text-4xl md:text-5xl font-bold text-center text-indigo-700 mb-10 p-4 bg-indigo-50 rounded-lg">
+                14x² + 27x - 20
+            </h2>
+
+            <!-- Main Interactive Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <!-- Column 1: Factors of x^2 term -->
+                <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                    <h3 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Factors of <span id="a-term-label">14x²</span></h3>
+                    <div id="x-factors-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <!-- Factor pairs will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Column 2: Visual Cross Method -->
+                <div class="bg-white p-6 rounded-lg border border-gray-200">
+                    <h3 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Visual Check</h3>
+                    
+                    <!-- The Visualizer -->
+                    <div id="visual-box" class="h-48 relative bg-gray-100 rounded-lg p-4 mb-6">
+                        <!-- Selected Factors -->
+                        <div id="selected-x1-box" class="absolute top-4 left-4 w-24 h-16 flex items-center justify-center text-lg font-bold bg-white shadow-md rounded-lg border border-gray-300">...</div>
+                        <div id="selected-x2-box" class="absolute bottom-4 left-4 w-24 h-16 flex items-center justify-center text-lg font-bold bg-white shadow-md rounded-lg border border-gray-300">...</div>
+                        
+                        <div id="selected-c1-box" class="absolute top-4 right-4 w-24 h-16 flex items-center justify-center text-lg font-bold bg-white shadow-md rounded-lg border border-gray-300">...</div>
+                        <div id="selected-c2-box" class="absolute bottom-4 right-4 w-24 h-16 flex items-center justify-center text-lg font-bold bg-white shadow-md rounded-lg border border-gray-300">...</div>
+                        
+                        <!-- Canvas for drawing lines -->
+                        <canvas id="cross-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+                    </div>
+
+                    <!-- Calculation -->
+                    <div class="space-y-3 text-center">
+                        <p id="calc-line-1" class="text-lg text-gray-700 h-7"></p>
+                        <p id="calc-line-2" class="text-lg text-gray-700 h-7"></p>
+                        <hr class="my-2">
+                        <p id="calc-sum" class="text-xl font-semibold text-indigo-800 h-8"></p>
+                    </div>
+                </div>
+
+                <!-- Column 3: Factors of constant term -->
+                <div class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                    <h3 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Factors of <span id="c-term-label">-20</span></h3>
+                    <div id="c-factors-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <!-- Factor pairs will be injected here -->
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Feedback Area -->
+            <div id="feedback-box" class="mt-8 p-4 rounded-lg text-xl font-medium text-center h-20" role="alert">
+                <!-- Feedback will be injected here -->
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const problemDisplay = document.getElementById('problem-display');
+        const newProblemBtn = document.getElementById('new-problem-btn');
+        const xFactorsList = document.getElementById('x-factors-list');
+        const cFactorsList = document.getElementById('c-factors-list');
+        const aTermLabel = document.getElementById('a-term-label');
+        const cTermLabel = document.getElementById('c-term-label');
+        const feedbackBox = document.getElementById('feedback-box');
+        
+        // Visualizer Elements
+        const visualBox = document.getElementById('visual-box');
+        const x1Box = document.getElementById('selected-x1-box');
+        const x2Box = document.getElementById('selected-x2-box');
+        const c1Box = document.getElementById('selected-c1-box');
+        const c2Box = document.getElementById('selected-c2-box');
+        const canvas = document.getElementById('cross-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculation Elements
+        const calcLine1 = document.getElementById('calc-line-1');
+        const calcLine2 = document.getElementById('calc-line-2');
+        const calcSum = document.getElementById('calc-sum');
+
+        // App State
+        let a, b, c;
+        let selectedXPair = null;
+        let selectedCPair = null;
+
+        // --- Utility Functions ---
+
+        /**
+         * Generates a random integer between min and max (inclusive).
+         */
+        function randInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        /**
+         * Formats the quadratic expression string.
+         */
+        function formatProblem(a, b, c) {
+            let aStr = (a === 1) ? "x²" : (a === -1) ? "-x²" : `${a}x²`;
+            let bStr = "";
+            if (b !== 0) {
+                if (b === 1) bStr = " + x";
+                else if (b === -1) bStr = " - x";
+                else if (b > 1) bStr = ` + ${b}x`;
+                else bStr = ` - ${Math.abs(b)}x`;
+            }
+            let cStr = "";
+            if (c !== 0) {
+                if (c > 0) cStr = ` + ${c}`;
+                else cStr = ` - ${Math.abs(c)}`;
+            }
+            
+            let result = `${aStr}${bStr}${cStr}`;
+            // Remove leading " + " if a is 1
+            if (result.startsWith("x² +")) {
+                 // all good
+            } else if (result.startsWith(" + ")) {
+                 result = result.substring(3);
+            }
+            return result;
+        }
+
+        /**
+         * Finds all unique factor pairs for the x^2 term (a).
+         * Only returns positive pairs.
+         */
+        function findXFactorPairs(num) {
+            const pairs = [];
+            for (let i = 1; i <= Math.sqrt(num); i++) {
+                if (num % i === 0) {
+                    pairs.push([i, num / i]);
+                }
+            }
+            return pairs;
+        }
+
+        /**
+         * Finds all unique factor pairs for the constant term (c).
+         * Includes positive/negative and swapped pairs.
+         */
+        function findCFactorPairs(num) {
+            const pairs = new Set(); // Use Set to avoid duplicates like [5, 5]
+            const absNum = Math.abs(num);
+            
+            for (let i = 1; i <= Math.sqrt(absNum); i++) {
+                if (absNum % i === 0) {
+                    let j = absNum / i;
+                    if (num > 0) {
+                        pairs.add(JSON.stringify([i, j]));
+                        pairs.add(JSON.stringify([-i, -j]));
+                    } else { // num < 0
+                        pairs.add(JSON.stringify([i, -j]));
+                        pairs.add(JSON.stringify([-i, j]));
+                    }
+                }
+            }
+            
+            // Add swapped versions
+            const finalPairs = Array.from(pairs, JSON.parse);
+            const allPairs = [...finalPairs];
+            for (const p of finalPairs) {
+                if (p[0] !== p[1]) {
+                    allPairs.push([p[1], p[0]]); // Add swapped
+                }
+            }
+            return allPairs;
+        }
+
+        // --- Core App Logic ---
+
+        /**
+         * Generates a new factorizable quadratic problem.
+         */
+        function generateProblem() {
+            let p, q, r, s;
+            
+            // Generate non-trivial factors
+            p = randInt(1, 8);
+            q = randInt(1, 8);
+            
+            do {
+                r = randInt(-10, 10);
+            } while (r === 0);
+            
+            do {
+                s = randInt(-10, 10);
+            } while (s === 0);
+
+            // (px + r)(qx + s) = (p*q)x^2 + (p*s + q*r)x + (r*s)
+            a = p * q;
+            b = (p * s) + (q * r);
+            c = r * s;
+
+            // Handle cases where b is 0 (which is valid but not great for this exercise)
+            if (b === 0) {
+                generateProblem(); // Recurse
+                return;
+            }
+
+            // Reset state
+            selectedXPair = null;
+            selectedCPair = null;
+
+            // Update UI
+            updateUI();
+        }
+
+        /**
+         * Updates the entire UI with the new problem data.
+         */
+        function updateUI() {
+            problemDisplay.textContent = formatProblem(a, b, c);
+            aTermLabel.textContent = (a === 1) ? 'x²' : `${a}x²`;
+            cTermLabel.textContent = c;
+            
+            // Clear lists
+            xFactorsList.innerHTML = '';
+            cFactorsList.innerHTML = '';
+            
+            // Populate x^2 factor list
+            const xPairs = findXFactorPairs(a);
+            xPairs.forEach((pair, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-lg p-3 bg-white rounded-lg border border-gray-300 hover:bg-indigo-100 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150';
+                btn.textContent = `(${pair[0]}x, ${pair[1]}x)`;
+                btn.onclick = () => selectXPair(pair, btn);
+                xFactorsList.appendChild(btn);
+            });
+
+            // Populate constant factor list
+            const cPairs = findCFactorPairs(c);
+            cPairs.forEach((pair, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-lg p-3 bg-white rounded-lg border border-gray-300 hover:bg-indigo-100 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150';
+                btn.textContent = `(${pair[0]}, ${pair[1]})`;
+                btn.onclick = () => selectCPair(pair, btn);
+                cFactorsList.appendChild(btn);
+            });
+            
+            // Reset visualizer
+            x1Box.textContent = '...';
+            x2Box.textContent = '...';
+            c1Box.textContent = '...';
+            c2Box.textContent = '...';
+            
+            // Reset calculations
+            calcLine1.textContent = '';
+            calcLine2.textContent = '';
+            calcSum.textContent = '';
+            
+            // Reset feedback
+            feedbackBox.textContent = 'Select a pair from each list.';
+            feedbackBox.className = 'mt-8 p-4 rounded-lg text-xl font-medium text-center h-20 bg-blue-100 text-blue-800';
+            
+            // Clear canvas
+            drawCross(false);
+        }
+
+        /**
+         * Handles selection of an x-factor pair.
+         */
+        function selectXPair(pair, buttonEl) {
+            selectedXPair = pair;
+            x1Box.textContent = `${pair[0]}x`;
+            x2Box.textContent = `${pair[1]}x`;
+            
+            // Update button styles
+            document.querySelectorAll('#x-factors-list button').forEach(btn => {
+                btn.classList.remove('btn-selected');
+            });
+            buttonEl.classList.add('btn-selected');
+            
+            checkSelection();
+        }
+
+        /**
+         * Handles selection of a constant-factor pair.
+         */
+        function selectCPair(pair, buttonEl) {
+            selectedCPair = pair;
+            c1Box.textContent = pair[0];
+            c2Box.textContent = pair[1];
+            
+            // Update button styles
+            document.querySelectorAll('#c-factors-list button').forEach(btn => {
+                btn.classList.remove('btn-selected');
+            });
+            buttonEl.classList.add('btn-selected');
+            
+            checkSelection();
+        }
+
+        /**
+         * Checks if the selected pairs are correct and updates feedback.
+         */
+        function checkSelection() {
+            if (!selectedXPair || !selectedCPair) {
+                return; // Not ready to check yet
+            }
+
+            // Draw the cross
+            drawCross(true);
+
+            const [x1, x2] = selectedXPair;
+            const [c1, c2] = selectedCPair;
+
+            // Calculate cross products
+            const cross1 = x1 * c2;
+            const cross2 = x2 * c1;
+            const sum = cross1 + cross2;
+
+            // Display calculation
+            calcLine1.textContent = `(${x1}x) * (${c2}) = ${cross1}x`;
+            calcLine2.textContent = `(${x2}x) * (${c1}) = ${cross2}x`;
+            calcSum.textContent = `Sum: ${sum}x`;
+
+            // Check for correctness
+            if (sum === b) {
+                // Correct!
+                feedbackBox.textContent = `Correct! The sum ${sum}x matches the middle term.`;
+                feedbackBox.className = 'mt-8 p-4 rounded-lg text-xl font-medium text-center h-20 bg-green-100 text-green-800';
+                
+                // Show factors
+                let factor1 = (c1 > 0) ? `(${x1}x + ${c1})` : (c1 < 0) ? `(${x1}x - ${Math.abs(c1)})` : `(${x1}x)`;
+                let factor2 = (c2 > 0) ? `(${x2}x + ${c2})` : (c2 < 0) ? `(${x2}x - ${Math.abs(c2)})` : `(${x2}x)`;
+                
+                calcSum.textContent = `Factors: ${factor1}${factor2}`;
+
+            } else {
+                // Incorrect
+                feedbackBox.textContent = `Not quite. The sum is ${sum}x, but we need ${b}x. Try another pair!`;
+                feedbackBox.className = 'mt-8 p-4 rounded-lg text-xl font-medium text-center h-20 bg-red-100 text-red-800';
+            }
+        }
+
+        /**
+         * Draws the "cross" lines on the canvas.
+         */
+        function drawCross(show) {
+            // Resize canvas to its display size
+            canvas.width = visualBox.clientWidth;
+            canvas.height = visualBox.clientHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (!show) {
+                return;
+            }
+
+            // Get center points of the 4 boxes
+            const p = { 
+                x: x1Box.offsetLeft + x1Box.offsetWidth / 2, 
+                y: x1Box.offsetTop + x1Box.offsetHeight / 2 
+            };
+            const q = { 
+                x: x2Box.offsetLeft + x2Box.offsetWidth / 2, 
+                y: x2Box.offsetTop + x2Box.offsetHeight / 2 
+            };
+            const r = { 
+                x: c1Box.offsetLeft + c1Box.offsetWidth / 2, 
+                y: c1Box.offsetTop + c1Box.offsetHeight / 2 
+            };
+            const s = { 
+                x: c2Box.offsetLeft + c2Box.offsetWidth / 2, 
+                y: c2Box.offsetTop + c2Box.offsetHeight / 2 
+            };
+
+            // Draw line from x1 to c2
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(s.x, s.y);
+            ctx.strokeStyle = '#EF4444'; // red-500
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw line from x2 to c1
+            ctx.beginPath();
+            ctx.moveTo(q.x, q.y);
+            ctx.lineTo(r.x, r.y);
+            ctx.strokeStyle = '#EF4444'; // red-500
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // --- Initialization ---
+        
+        // Redraw canvas on window resize
+        window.addEventListener('resize', () => checkSelection());
+        
+        // Add event listener for the button
+        newProblemBtn.addEventListener('click', generateProblem);
+
+        // Load the first problem
+        document.addEventListener('DOMContentLoaded', generateProblem);
+
+    </script>
+</body>
+</html>
